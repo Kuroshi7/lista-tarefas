@@ -1,126 +1,78 @@
-import React,{Component} from "react";
-import'./Main.css'
+import React, { useState, useEffect } from "react";
+import Form from './Form';
+import TaskList from './TaskList';
+import './Main.css';
 
-//form
-import  {FaPlus} from 'react-icons/fa';
-//tarefas
-import  {FaEdit, FaWindowClose} from 'react-icons/fa';
+function Main() {
+    const [novaTarefa, setNovaTarefa] = useState('');
+    const [tarefas, setTarefas] = useState([]);
+    const [index, setIndex] = useState(-1);
 
+    // Carrega as tarefas salvas ao montar o componente
+    useEffect(() => {
+        const tarefasSalvas = JSON.parse(localStorage.getItem('tarefas'));
+        if (tarefasSalvas && Array.isArray(tarefasSalvas)) {
+            setTarefas(tarefasSalvas);
+        }
+    }, []);
 
-export default class Main extends Component{
-    state={
-        novaTarefa: '',
-        tarefas:[],
-        index: -1,
-    };
+    // Atualiza o localStorage com as tarefas quando elas mudam
+    useEffect(() => {
+        if (tarefas.length > 0) {
+            localStorage.setItem('tarefas', JSON.stringify(tarefas));
+        } else {
+            localStorage.removeItem('tarefas');
+        }
+    }, [tarefas]);
 
-    componentDidMount(){
-        const tarefas = JSON.parse(localStorage.getItem('tarefas'))
-        if(!tarefas) return;
-
-        this.setState({tarefas})
-
-    }
-
-    componentDidUpdate(prevProps,prevState){
-        const {tarefas} = this.state
-        if(tarefas === prevState.tarefas) return;
-
-        localStorage.setItem('tarefas',JSON.stringify(tarefas))
-    }
-
-    handleSubmit = (ev)=>{
+    const handleSubmit = (ev) => {
         ev.preventDefault();
-        const {tarefas, index} = this.state
-        let {novaTarefa} = this.state
-        novaTarefa = novaTarefa.trim();
+        const novaTarefaTrimmed = novaTarefa.trim();
 
-        if(tarefas.indexOf(novaTarefa) !== -1) return;
+        if (novaTarefaTrimmed === '' || tarefas.includes(novaTarefaTrimmed)) return;
 
         const novasTarefas = [...tarefas];
 
-        if(index === -1){
-            this.setState({
-                tarefas: [...novasTarefas, novaTarefa],
-                novaTarefa: ''
-            });
-        } else{
-
-            novasTarefas[index] = novaTarefa;
-
-            this.setState({
-                tarefas: [...novasTarefas],
-                index: -1,
-            })
+        if (index === -1) {
+            setTarefas([...novasTarefas, novaTarefaTrimmed]);
+            setNovaTarefa('');
+        } else {
+            novasTarefas[index] = novaTarefaTrimmed;
+            setTarefas(novasTarefas);
+            setIndex(-1);
+            setNovaTarefa('');
         }
+    };
 
+    const handleChange = (ev) => {
+        setNovaTarefa(ev.target.value);
+    };
 
-    }
+    const handleEdit = (index) => {
+        setIndex(index);
+        setNovaTarefa(tarefas[index]);
+    };
 
-    handleChange = (ev)=>{
-        this.setState({
-            novaTarefa: ev.target.value,
-        })
-    }
+    const handleDelete = (index) => {
+        const novasTarefas = tarefas.filter((_, i) => i !== index);
+        setTarefas(novasTarefas);
+    };
 
-    handleEdit = (ev, index) =>{
-        const {tarefas} = this.state;
-
-        this.setState({
-            index,
-            novaTarefa: tarefas[index],
-        });
-
-    }
-
-    handleDelete = (ev, index) =>{
-        const {tarefas} = this.state
-        const novasTarefas = [...tarefas]
-        novasTarefas.splice(index,1)
-
-        this.setState({
-            tarefas: [...novasTarefas]
-        })
-    }
-
-    render(){
-        const {novaTarefa, tarefas} = this.state
-
-        return(
-            <div className="main">
-                <h1>Lista de Tarefas</h1>
-
-                <form onSubmit={this.handleSubmit} action="#" className="form">
-                    <input onChange={this.handleChange}
-                    type="text"
-                    value={novaTarefa}
-                    />
-                    <button type="submit">
-                        <FaPlus/>
-                    </button>
-                </form>
-
-            <ul className="tarefas">
-                {tarefas.map((tarefa,index)=>(
-                    <li key={tarefa}>
-                        {tarefa}
-                        <span>
-                            <FaEdit
-                            onClick={(ev)=>this.handleEdit(ev,index)}
-                            className="edit"
-                            />
-
-                            <FaWindowClose
-                            onClick={(ev)=>this.handleDelete(ev,index)}
-                            className="delete"
-                            />
-
-                        </span>
-                    </li>
-                ))}
-            </ul>
-
-            </div>
-        );
-    }
+    return (
+        <div className="main">
+            <h1>Lista de Tarefas</h1>
+            <Form
+                novaTarefa={novaTarefa}
+                handleChange={handleChange}
+                handleSubmit={handleSubmit}
+            />
+            <TaskList
+                tarefas={tarefas}
+                handleEdit={handleEdit}
+                handleDelete={handleDelete}
+            />
+        </div>
+    );
 }
+
+export default Main;
